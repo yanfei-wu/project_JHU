@@ -1,0 +1,88 @@
+---
+title: "Analysis of mtcars Data Set"
+author: "Yanfei Wu"
+date: "June 20, 2016"
+output: html_document
+keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Executive Summary
+This report analyzes the *mtcars* data set in R with some exploratory data analyses and regression models. The relationship between a set of variables and miles per gallon (MPG) is investigated. Specificially, the report tries to answer two questions:   
+1. Is an automatic or manual transmission better for MPG?  
+2. Can we quantify the MPG difference between automatic and manual transmissions?  
+
+## Analysis  
+### I. Exploratory Data Analyses  
+```{r load data}
+data(mtcars)
+str(mtcars)
+```
+The *mtcars* data is a data frame with 32 observations on 11 variables. Since we are interested in examing factors that affact MPG, the correlation coefficients between *MPG and the remaining 10 variables* are calculated below and a scatterplot matrix of selected variables is included in **Appendix**.    
+```{r correlation_mpg}
+require(stats)
+round(cor(mtcars)[-1, 1], 2)
+```  
+Apparently, most of the variables show moderate to strong correlations with MPG (|coefficients| > 0.5). We also note that the remaining 10 variables themselves are more or less correlated . For example, correlations between *number of cylinders and other variables* have the coefficients of:  
+```{r correlation_cyl}
+round(cor(mtcars)[-2, 2], 2)
+```  
+The variable that we are particularly interested in here is the transmission ("am": 0-auto, 1-manual). To examine it, we simply plot "mpg" vs "am" as shown in **Appendix**.   
+
+### II. Model Fitting and Model Selection  
+From the exploratory data analyses, we know that we are dealing with a multivariable regression problem with many of the variables correlated. We are particularly interested in examining the effect of transmission. But according to the correlation coefficients, "wt", "cyl" and "disp" show the strongest correlations with "mpg". So we compare the following several models.   
+```{r mods}
+fit0 <- lm(mpg ~ am, data = mtcars)
+## Model 0: MPG ~ transmission
+fit1 <- lm(mpg ~ wt + cyl + disp, data = mtcars)
+## Model 1: MPG ~ weight + number of cylinders + displacement
+fit2 <- lm(mpg ~ wt + hp + cyl + disp + am, data = mtcars)
+## Model 2: MPG ~ weight + number of cylinders + displacement + transmission
+fit3 <- lm(mpg ~ ., data = mtcars)
+## Model 3: MPG ~ all variables
+```
+Since we are interested in answering if auto (am = 0) or manual (am = 1) transmission is better, we can fit MPG only with transmission, and we get:  
+```{r sum0}
+summary(fit0)
+```  
+The coefficients tell us that with manual transmission MPG increases by 7.245 miles/Gallon. The p value is < 0.05, indicating that the difference for manual transmission is significant. But the adjusted R^2 in this case is only 0.3385. Clearly, the coefficients obtained here is biased without considering other variables.  
+
+If we fit MPG with weight, number of cylinders and displacement, which have large correlation coefficients with MPG, we get:   
+```{r sum1}
+summary(fit1)
+``` 
+We see that the adjusted R^2 is 0.8147. The p values show that both weight and number of cylinders have significant linear relationships with MPG, but the  displacement does not.   
+
+We also compare models with more variables added over model 1 as follows:  
+```{r comp}
+anova(fit1, fit2, fit3)
+```  
+From the p values, adding transmission and all other variables over model 1 is not necessary.  
+
+Now, We can construct a new model with only weight and number of cylinders to predict MPG. The residual plot is shown below and does not show regular pattern.
+```{r, fig.height = 4, fig.width = 6, fig.align = "center"}
+fit <- lm(mpg ~ wt + cyl, data = mtcars)
+plot(predict(fit), resid(fit))
+abline(h = 0, col = "red")
+```  
+
+## Conclusions   
+From the analyses above, MPG is mainly related to vehicle weight and number of cylinders. Manual transmission is better than auto transmission on MPG. But with the given data set, we are unable to correctly quantify the difference between the two types of transmissions on MPG.  
+
+
+## Appendix    
+
+```{r scatterplot_matrix, echo = F}
+library(car)
+scatterplotMatrix(~ mpg + wt + disp + cyl, data = mtcars, 
+                  main = ("Scatter Plot Matrix"))
+```  
+
+```{r fig.height = 4, fig.width = 6, fig.align = "center", echo = F}
+library(ggplot2)
+ggplot(mtcars, aes(x = as.factor(am), y = mpg)) +
+    geom_boxplot(aes(fill = as.factor(am))) + geom_jitter(alpha = 0.5) +
+    labs(x = "Transmission", y = "Miles per Gallon", title = "MPG vs Transmission")
+```  

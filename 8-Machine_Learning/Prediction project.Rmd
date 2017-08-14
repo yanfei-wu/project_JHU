@@ -1,0 +1,149 @@
+---
+title: "**Machine Learning of Exercise Data**"
+author: "Yanfei Wu"
+date: "June 22, 2016"
+output: 
+html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## **Background**  
+Using devices such as Fitbit is now possible to collect a large amount of data about personal activity relatively inexpensively. One thing that people regularly do with this type of devices is to quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal is to build a model with data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict the manner they do the exercise. Specifically, we want to classify the activity data into 5 classes:    
+
+Class A - exactly according to the specification  
+Class B - throwing the elbows to the front   
+Class C - lifting the dumbbell only halfway   
+Class D - lowering the dumbbell only halfway   
+Class E - throwing the hips to the front   
+
+(More information is available at: http://groupware.les.inf.puc-rio.br/har.)  
+
+## **Analysis**  
+### *0. Packages and Libraries*  
+```{r package}
+library(caret)
+library(rpart)
+library(randomForest)
+set.seed(1232)
+```  
+
+### *1. Get Data*   
+First, the training data and the test data are downloaded and loaded into R.
+```{r get data}
+url_train <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+url_test <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+download.file(url_train, destfile = "traindata.csv")
+download.file(url_test, destfile = "testdata.csv")
+
+traindata <- read.csv("traindata.csv", na.strings = c("NA", "#DIV/0!", ""))
+testdata <- read.csv("testdata.csv", na.strings = c("NA", "#DIV/0!", ""))
+```  
+
+### *2. Slice Data*    
+The *original training data* are then split into training (70%) and test sets (30%). We will later build model on the training set and test on the test set for cross-validation.  
+```{r split training data}
+inTrain <- createDataPartition(y = traindata$classe, p = 0.7, list = F)
+train <- traindata[inTrain,]
+test <- traindata[-inTrain,]
+
+d1 <- dim(train)
+d2 <- dim(test)
+```  
+Now the *new* training set has `r d1[1]` observations of `r d1[2]` variables, and the *new* test set has `r d2[1]` observations of `r d2[2]` variables. But we don't need to use all the variables as predictors. For example, some variables have large number of missing values (NAs). So we need to do some pre-processing of the data sets and select the predictors for our model.   
+
+### *3. Basic Pre-processing*   
+**Training Set**
+```{r subset train data}
+## remove the first 7 columns from training data
+train_sub <- train[,-(1:7)]
+
+## remove zero coviates
+nzv <- nearZeroVar(train_sub, saveMetrics = T)[, 4]
+index <- which(names(train_sub) %in% names(train_sub)[!nzv])
+train_sub <- train_sub[, index]
+
+## remove variables containing large percentage of NAs
+nas <- NULL
+for (i in 1: length(index)) nas[i] <- mean(is.na(train_sub[, i]))
+index2 <- which(nas < 0.9)
+train_sub <- train_sub[, index2]
+```  
+
+**Test Data**  
+We apply the same process to the test set.  
+```{r subset test data}
+## remove the first 7 columns from training data
+test_sub <- test[,-(1:7)]
+
+## remove zero coviates
+test_sub <- test_sub[, index]
+
+## remove variables containing large percentage of NAs
+test_sub <- test_sub[, index2]
+```  
+
+### *4. Pre-processing PCA*  
+Up to this point, the dimension of the training subset is:  
+```{r dim_train}
+dim(train_sub)
+```
+There are still `r dim(train_sub)[2]` variables, and many of them are correlated with each other. 
+```{r corr}
+M <- abs(cor(train_sub[, -53]))
+diag(M) <- 0
+n <- nrow(which(M >0.8, arr.ind = T))
+```  
+For example, there are `r n` variables with correlation coefficients > 0.8. Therefore, PCA is used to futher reduce the number of predictors.   
+```{r PCA}
+preProc <- preProcess(train_sub[, -53], method = c("center", "scale", "pca"))
+train_PC <- predict(preProc, train_sub)
+test_PC <- predict(preProc, test_sub)
+```  
+
+### *5. Models and Cross-validation*
+**Trees**
+```{r model_t}
+modFit_t <- rpart(classe ~ ., data = train_PC, method = "class")
+
+## Predict with model
+pred_t0 <- predict(modFit_t, train_PC, type = "class")
+pred_t <- predict(modFit_t, test_PC, type = "class")
+
+## Evaluate prediction on training set
+confusionMatrix(pred_t0, train$classe)
+
+## Evaluate prediction on test set
+confusionMatrix(pred_t, test$classe)
+```
+
+**Random Forest**  
+```{r model_rf}
+modFit_rf <- randomForest(classe ~., data = train_PC, prox = T, ntree = 50)  
+
+## Predict with model
+pred_rf0 <- predict(modFit_rf, train_PC)
+pred_rf <- predict(modFit_rf, test_PC)
+
+## Evaluate prediction on training set
+confusionMatrix(pred_rf0, train$classe)
+
+## Evaluate prediction on test set
+confusionMatrix(pred_rf, test$classe)
+```  
+The model based on random forest shows much better accuracy and therefore we choose for any further predictions. Note that the **in-sample error** of random forest model is (0.9997, 1) within 95% confidence interval. The **out-of-sample error** of this model is (0.9672, 0.9759) within 95% confidence interval.   
+
+### *6. Evaluate the 20 Test Data*  
+The random forest model can be used to predict the *original test data* as below.
+
+```{r test, results = "hide"}
+predict(modFit_rf, predict(preProc, testdata))
+```
+
+## **Conclusion**  
+The original training data is split into training/test sets followed by pre-processing the data. Models based on decision tree and random forest are built on the training set and evaluated on the test set. The random forest model is choosen to evaluate the original test data since it gives much smaller in-sample and out-of-sample errors.   
+
