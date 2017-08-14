@@ -8,4 +8,4 @@ This subproject investigates the exponential distribution in R and compares it w
 
 2. Analysis of ToothGrowth Dataset 
 
-This project analyzes the `ToothGrowth` dataset in the R `datasets` package. Some basic exploratory data analyses are performed and a basic summary of the data is given. Also, confidence intervals and hypothesis tests are used to compare tooth growth by `supp` and `dose`.  
+This subproject analyzes the `ToothGrowth` dataset in the R `datasets` package. Some basic exploratory data analyses are performed and a basic summary of the data is given. Also, confidence intervals and hypothesis tests are used to compare tooth growth by `supp` and `dose`.  
