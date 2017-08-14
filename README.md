@@ -2,7 +2,7 @@
 
 This repo contains a list of projects for my studies of Johns Hopkins University Data Science Specialization on Coursera. **All projects were done in `R`**. These projects include: 
 
-## R Plotting - Exploration of Household Electric Power Consumption Dataset (`1-ExData_Plotting/`) 
+## R Plotting (`1-ExData_Plotting/`) 
 
 - Explored the "Individual household electric power consumption Data Set" from UCI Machine Learning Repository  
 - Used the base plotting system to construct plots to examine how household energy usage varies over a 2-day period in February, 2007 
@@ -53,7 +53,7 @@ This repo contains a list of projects for my studies of Johns Hopkins University
 
 ## Machine Learning with Human Activity Data (`8-Machine_Learning`)
 
-- Explored human activity data from from accelerometers on the belt, forearm, arm, and dumbell of 6 participants 
+- Explored human activity data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants 
 - Built Random Forest classification model to predict the manner in which people did the exercise  
 
 
