@@ -56,5 +56,11 @@ This repo contains a list of projects for my studies of Johns Hopkins University
 - Explored human activity data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants 
 - Built Random Forest classification model to predict the manner in which people did the exercise  
 
+---  
+
+## Shinny App (`9-Shinny_App`)
+
+- Built a Shiny app to reactively display the trend of home values in CA  
+- Made a slide deck with R `Slidify` package to introduce the app  
 
 
